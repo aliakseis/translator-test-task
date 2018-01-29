@@ -131,7 +131,7 @@ struct Instruction {
 
 #pragma pack(pop)
 
-uint64_t SIGNATURE_ESET_VM1 = 0x314d562d54455345;
+const uint64_t SIGNATURE_ESET_VM1 = 0x314d562d54455345;
 
 static_assert(sizeof(Instruction) == 3, "Every instruction is 3 bytes long");
 
