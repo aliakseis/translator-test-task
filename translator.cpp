@@ -237,7 +237,7 @@ bool InstructionContext::TranslateEvmFile(LPCTSTR szInFile, LPCTSTR szOutFile)
     // Handle jumps
     for (auto it(jumps.begin()), itEnd(jumps.end()); it != itEnd; ++it)
     {
-        for each(auto offset in it->second)
+        for (auto offset : it->second)
         {
             uint32_t* pos = (uint32_t*) &section[offset];
             size_t instructionIndex = it->first + 1;
@@ -399,7 +399,7 @@ bool InstructionContext::AddInstruction(
 
     case 50: // LDC reg, imm8 load 8-bit immediate value to reg reg = imm8 (unsigned)
         {
-            const uint32_t imm = unsigned char(src);
+            const uint32_t imm = static_cast<unsigned char>(src);
             trace("LDC reg%d = %d\n", dst, imm);
             VERIFY_REGISTER_IDX (dst);
             const BYTE code[] = {
@@ -645,7 +645,7 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     // strings
     for (auto it(strings.begin()), itEnd(strings.end()); it != itEnd; ++it)
     {
-        for each(auto offset in it->second)
+        for (auto offset : it->second)
         {
             uint32_t* pos = (uint32_t*) &section[offset];
             *pos = section.size() - sizeof(uint32_t) - offset;
@@ -699,7 +699,7 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
         for (auto it(itModule->second.begin()), itEnd(itModule->second.end()); it != itEnd; ++it)
         {
 
-            for each(auto offset in it->second)
+            for (auto offset : it->second)
             {
                 uint32_t* pos = (uint32_t*) &section[offset];
                 *pos = section.size() - sizeof(uint32_t) - offset;
@@ -757,7 +757,7 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
         for (auto it(itMappings->second.begin()), itEnd(itMappings->second.end()); it != itEnd; ++it)
         {
             const size_t dataOffset = codeSectionVirtualSize + it->first;
-            for each(auto offset in it->second)
+            for (auto offset : it->second)
             {
                 uint32_t* pos = (uint32_t*) &section[offset];
                 *pos = dataOffset - sizeof(uint32_t) - offset - itMappings->first;
