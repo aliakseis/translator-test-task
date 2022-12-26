@@ -28,7 +28,9 @@ struct UNWIND_INFO_
     // ExceptionData
 };
 
+#ifndef UNW_FLAG_EHANDLER
 enum { UNW_FLAG_EHANDLER = 1 };
+#endif
 
 struct RUNTIME_FUNCTION_
 {
