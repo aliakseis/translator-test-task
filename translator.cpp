@@ -56,18 +56,19 @@ class MemoryMappedFile
 {
 public:
     MemoryMappedFile() 
-        : hFile(INVALID_HANDLE_VALUE)
-        , hFileMapping(NULL) 
-        , pData(NULL)
+        : hFile(INVALID_HANDLE_VALUE)   
     {}
     ~MemoryMappedFile() 
     {
-        if (pData)
+        if (pData) {
             UnmapViewOfFile(pData);
-        if (hFileMapping)
+        }
+        if (hFileMapping) {
             CloseHandle(hFileMapping);
-        if (INVALID_HANDLE_VALUE != hFile)
+        }
+        if (INVALID_HANDLE_VALUE != hFile) {
             CloseHandle(hFile);
+        }
     }
 
     bool MapFlie(LPCTSTR szFile)
@@ -76,25 +77,25 @@ public:
             szFile,					    // pointer to name of the file
             GENERIC_READ,               // access (read-write) mode
             0,							// share mode 
-            NULL,						// pointer to security attributes 
+            nullptr,						// pointer to security attributes 
             OPEN_EXISTING,				// how to create 
             FILE_ATTRIBUTE_NORMAL,		// file attributes 
-            NULL						// handle to file with attributes to copy
+            nullptr						// handle to file with attributes to copy
         ); 
         if (INVALID_HANDLE_VALUE != hFile && GetFileSizeEx(hFile, &fileSize))
         { 
             hFileMapping = CreateFileMapping(
                 hFile,			    // handle to file to map 
-                NULL,				// optional security attributes 
+                nullptr,				// optional security attributes 
                 PAGE_READONLY,      // protection for mapping object 
                 fileSize.HighPart,	// high-order 32 bits of object size 
                 fileSize.LowPart,	// low-order 32 bits of object size 
-                NULL				// name of file-mapping object 
+                nullptr				// name of file-mapping object 
             ); 
-            if (NULL != hFileMapping)
+            if (nullptr != hFileMapping)
             {
                 pData = MapViewOfFile(hFileMapping, FILE_MAP_READ, 0, 0, (SIZE_T)fileSize.QuadPart);
-                return pData != NULL;
+                return pData != nullptr;
             }
         }
 
@@ -107,8 +108,8 @@ public:
 private:
     HANDLE hFile;
     LARGE_INTEGER fileSize;
-    HANDLE hFileMapping;
-    LPVOID pData;
+    HANDLE hFileMapping{NULL};
+    LPVOID pData{NULL};
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -202,7 +203,7 @@ bool InstructionContext::TranslateEvmFile(LPCTSTR szInFile, LPCTSTR szOutFile)
         return false;
     }
 
-    Header* header = (Header*) mmf.data();
+    auto* header = (Header*) mmf.data();
     trace("Header codeSize = %u, dataSize = %u, initialDataSize = %u\n", 
         header->codeSize, header->dataSize, header->initialDataSize);
     // verify
@@ -214,7 +215,7 @@ bool InstructionContext::TranslateEvmFile(LPCTSTR szInFile, LPCTSTR szOutFile)
         return false;
     }
 
-    Instruction* instruction = (Instruction*)(header + 1);
+    auto* instruction = (Instruction*)(header + 1);
 
     //section.push_back(0xCC); // Debug
 
@@ -235,12 +236,12 @@ bool InstructionContext::TranslateEvmFile(LPCTSTR szInFile, LPCTSTR szOutFile)
     }
 
     // Handle jumps
-    for (auto it(jumps.begin()), itEnd(jumps.end()); it != itEnd; ++it)
+    for (auto & jump : jumps)
     {
-        for (auto offset : it->second)
+        for (auto offset : jump.second)
         {
-            uint32_t* pos = (uint32_t*) &section[offset];
-            size_t instructionIndex = it->first + 1;
+            auto* pos = (uint32_t*) &section[offset];
+            size_t instructionIndex = jump.first + 1;
             if (instructionIndex >= instructionOffsets.size())
             {
                 cerr << "Error: Jump address out of bounds\n";
@@ -353,7 +354,7 @@ bool InstructionContext::AddInstruction(
 
             dataMappings[0][REGISTER_SIZE * src].push_back(offset + 17 + 30);
             section.insert(section.end(), std::begin(code), std::end(code));
-            uint32_t* pos = (uint32_t*) &section[offset + 17];
+            auto* pos = (uint32_t*) &section[offset + 17];
             *pos = dataSize - REGISTER_SIZE;
         }
         break;
@@ -392,7 +393,7 @@ bool InstructionContext::AddInstruction(
 
             dataMappings[0][REGISTER_SIZE * dst].push_back(offset + 21 + 30);
             section.insert(section.end(), std::begin(code), std::end(code));
-            uint32_t* pos = (uint32_t*) &section[offset + 17];
+            auto* pos = (uint32_t*) &section[offset + 17];
             *pos = dataSize - REGISTER_SIZE;
         }
         break;
@@ -550,7 +551,7 @@ bool InstructionContext::AddInstruction(
 
     case 99: //JUMP imm16 unconditional relative jump by imm16. IP = IP + imm16
         {
-            short imm16 = (short)MAKEWORD(dst, src);
+            auto imm16 = (short)MAKEWORD(dst, src);
             trace("JUMP %d\n", imm16 + instructionNumber + 1);
 
             const BYTE code[] = {
@@ -564,7 +565,7 @@ bool InstructionContext::AddInstruction(
     case 100:	// CALL imm16 stores next instruction pointer on internal stack and jumps by imm16. 
                 // save IP of next instruction to call stack JMP imm16
         {
-            short imm16 = (short)MAKEWORD(dst, src);
+            auto imm16 = (short)MAKEWORD(dst, src);
             trace("CALL %d\n", imm16 + instructionNumber + 1);
 
             const BYTE code[] = {
@@ -643,15 +644,15 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     Align(section, 4, 0xCC);
 
     // strings
-    for (auto it(strings.begin()), itEnd(strings.end()); it != itEnd; ++it)
+    for (auto & string : strings)
     {
-        for (auto offset : it->second)
+        for (auto offset : string.second)
         {
-            uint32_t* pos = (uint32_t*) &section[offset];
+            auto* pos = (uint32_t*) &section[offset];
             *pos = section.size() - sizeof(uint32_t) - offset;
         }
-        BYTE* data = (BYTE*) it->first.c_str();
-        section.insert(section.end(), data, data + it->first.length() + 1);
+        BYTE* data = (BYTE*) string.first.c_str();
+        section.insert(section.end(), data, data + string.first.length() + 1);
     }
     section.push_back(0);
     Align(section, 16, 0);
@@ -664,14 +665,14 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     auto itDescriptor = importDescriptors.begin();
     for (auto itModule(imports.begin()); itModule != imports.end(); ++itModule, ++itDescriptor)
     {
-        for (auto it(itModule->second.begin()), itEnd(itModule->second.end()); it != itEnd; ++it)
+        for (auto & it : itModule->second)
         {
-            importNames[&it->second] = SECTIONALIGN + section.size();
+            importNames[&it.second] = SECTIONALIGN + section.size();
 
             section.push_back(0);
             section.push_back(0);
-            BYTE* data = (BYTE*) it->first.c_str();
-            section.insert(section.end(), data, data + it->first.length() + 1);
+            BYTE* data = (BYTE*) it.first.c_str();
+            section.insert(section.end(), data, data + it.first.length() + 1);
         }
     }
     Align(section, 16, 0);
@@ -681,9 +682,9 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     {
         itDescriptor->OriginalFirstThunk = SECTIONALIGN + section.size();
 
-        for (auto it(itModule->second.begin()), itEnd(itModule->second.end()); it != itEnd; ++it)
+        for (auto & it : itModule->second)
         {
-            uint64_t th = importNames[&it->second];
+            uint64_t th = importNames[&it.second];
             section.insert(section.end(), (BYTE*)&th, (BYTE*)(&th + 1));
         }
 
@@ -696,16 +697,16 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     {
         itDescriptor->FirstThunk = SECTIONALIGN + section.size();
 
-        for (auto it(itModule->second.begin()), itEnd(itModule->second.end()); it != itEnd; ++it)
+        for (auto & it : itModule->second)
         {
 
-            for (auto offset : it->second)
+            for (auto offset : it.second)
             {
-                uint32_t* pos = (uint32_t*) &section[offset];
+                auto* pos = (uint32_t*) &section[offset];
                 *pos = section.size() - sizeof(uint32_t) - offset;
             }
 
-            uint32_t th = importNames[&it->second];
+            uint32_t th = importNames[&it.second];
             section.insert(section.end(), (BYTE*)&th, (BYTE*)(&th + 1));
 
             section.insert(section.end(), 4, 0);
@@ -750,17 +751,15 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
 
     // Data
     //dataMappings
-    for (auto itMappings(dataMappings.begin()), itMappingsEnd(dataMappings.end())
-        ; itMappings != itMappingsEnd
-        ; ++itMappings)
+    for (auto & dataMapping : dataMappings)
     {
-        for (auto it(itMappings->second.begin()), itEnd(itMappings->second.end()); it != itEnd; ++it)
+        for (auto it(dataMapping.second.begin()), itEnd(dataMapping.second.end()); it != itEnd; ++it)
         {
             const size_t dataOffset = codeSectionVirtualSize + it->first;
             for (auto offset : it->second)
             {
-                uint32_t* pos = (uint32_t*) &section[offset];
-                *pos = dataOffset - sizeof(uint32_t) - offset - itMappings->first;
+                auto* pos = (uint32_t*) &section[offset];
+                *pos = dataOffset - sizeof(uint32_t) - offset - dataMapping.first;
             }
         }
     }
@@ -842,10 +841,10 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
         szFile,
         GENERIC_WRITE,
         0,
-        0,
+        nullptr,
         CREATE_ALWAYS,
         FILE_FLAG_SEQUENTIAL_SCAN,
-        NULL);
+        nullptr);
     if (handle == INVALID_HANDLE_VALUE)
     {
         cerr << "Cannot create exe file.\n";
@@ -856,27 +855,27 @@ bool InstructionContext::MakeExecutable(LPCTSTR szFile, const void* data, size_t
     size.QuadPart 
         = FILEALIGN + headers64.sectionHeaders[0].SizeOfRawData 
         + headers64.sectionHeaders[1].SizeOfRawData;
-    SetFilePointerEx(handle, size, 0, FILE_BEGIN);
+    SetFilePointerEx(handle, size, nullptr, FILE_BEGIN);
     SetEndOfFile(handle);
-    SetFilePointer(handle, 0, 0, FILE_BEGIN);
+    SetFilePointer(handle, 0, nullptr, FILE_BEGIN);
 
     DWORD numberOfBytesWritten = 0;
-    WriteFile(handle, &headers64, sizeof(headers64), &numberOfBytesWritten, NULL);
+    WriteFile(handle, &headers64, sizeof(headers64), &numberOfBytesWritten, nullptr);
 
-    SetFilePointer(handle, FILEALIGN, 0, FILE_BEGIN);
-    WriteFile(handle, section.data(), section.size(), &numberOfBytesWritten, NULL); 
+    SetFilePointer(handle, FILEALIGN, nullptr, FILE_BEGIN);
+    WriteFile(handle, section.data(), section.size(), &numberOfBytesWritten, nullptr); 
     WriteFile(
             handle, 
             importDescriptors.data(), 
             importDescriptors.size() * sizeof(IMAGE_IMPORT_DESCRIPTOR), 
             &numberOfBytesWritten, 
-            NULL); 
+            nullptr); 
 
     // handle data
     if (dataSize > 0)
     {
-        SetFilePointer(handle, FILEALIGN + headers64.sectionHeaders[0].SizeOfRawData + REGISTER_TABLE_SIZE, 0, FILE_BEGIN);
-        WriteFile(handle, data, dataSize, &numberOfBytesWritten, NULL);
+        SetFilePointer(handle, FILEALIGN + headers64.sectionHeaders[0].SizeOfRawData + REGISTER_TABLE_SIZE, nullptr, FILE_BEGIN);
+        WriteFile(handle, data, dataSize, &numberOfBytesWritten, nullptr);
     }
 
     CloseHandle(handle);
