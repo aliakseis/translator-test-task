@@ -55,9 +55,6 @@ void trace(const char *format, ...)
 class MemoryMappedFile
 {
 public:
-    MemoryMappedFile() 
-        : hFile(INVALID_HANDLE_VALUE)   
-    {}
     ~MemoryMappedFile() 
     {
         if (pData) {
@@ -106,8 +103,8 @@ public:
     LONGLONG size() const { return fileSize.QuadPart; }
 
 private:
-    HANDLE hFile;
-    LARGE_INTEGER fileSize;
+    HANDLE hFile{ INVALID_HANDLE_VALUE };
+    LARGE_INTEGER fileSize{};
     HANDLE hFileMapping{NULL};
     LPVOID pData{NULL};
 };
